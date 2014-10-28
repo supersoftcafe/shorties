@@ -5,6 +5,8 @@
  */
 package com.supersoftcafe.shorties;
 
+import com.supersoftcafe.shorties.old.Equality;
+import com.supersoftcafe.shorties.old.EqualityBuilder;
 import java.lang.reflect.Field;
 import java.util.function.BiPredicate;
 import org.junit.After;
@@ -36,8 +38,8 @@ public class EqualityBuilderTest {
     public void testBasic() {
         Equality equals =
                 EqualityBuilder.from(EqualityBuilderTest.class)
-                .withObject(x -> x.aString)
-                .withInteger(x -> x.anInt)
+                .with(x -> x.aString)
+                .with(x -> x.anInt)
                 .build();
         
         EqualityBuilderTest a = new EqualityBuilderTest();

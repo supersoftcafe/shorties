@@ -1,5 +1,5 @@
 
-package com.supersoftcafe.shorties;
+package com.supersoftcafe.shorties.old;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ReflectPermission;
@@ -8,8 +8,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.RandomAccess;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
@@ -21,7 +24,7 @@ import java.util.function.ToLongFunction;
  * instances of a class.
  * @author mbrown
  */
-public class EqualityBuilder<T> {
+public class EqualityBuilder<T> extends PropertyConsumer<T> {
     private final Class<T> clazz;
     private final Set<Option> options;
     private final List<BiPredicate<? super T, ? super T>> equalityChecks;
@@ -42,52 +45,74 @@ public class EqualityBuilder<T> {
         return this;
     }
     
-    public EqualityBuilder<T> with(BiPredicate<? super T, ? super T> equalityChecker) {
+    public EqualityBuilder<T> withPredicate(BiPredicate<? super T, ? super T> equalityChecker) {
         if (equalityChecker == null)
             throw new NullPointerException("equalityChecks must not be null");
         equalityChecks.add(equalityChecker);
         return this;
     }
     
+    public <R> EqualityBuilder<T> with(Function<T, R> getter) {
+        if (getter == null)
+            throw new NullPointerException("getter must not be null");
+        return withPredicate((u, t) -> {
+            R value1 = getter.apply(u), value2 = getter.apply(t);
+            return value1 == null ? value2 == null : value1.equals(value2);
+        });
+    }
+    
     public EqualityBuilder<T> withInteger(ToIntFunction<T> getter) {
         if (getter == null)
             throw new NullPointerException("getter must not be null");
-        return with((u, t) -> getter.applyAsInt(u) == getter.applyAsInt(t));
+        return withPredicate((u, t) -> getter.applyAsInt(u) == getter.applyAsInt(t));
     }
     
     public EqualityBuilder<T> withLong(ToLongFunction<T> getter) {
         if (getter == null)
             throw new NullPointerException("getter must not be null");
-        return with((u, t) -> getter.applyAsLong(u) == getter.applyAsLong(t));
+        return withPredicate((u, t) -> getter.applyAsLong(u) == getter.applyAsLong(t));
     }
     
     public EqualityBuilder<T> withDouble(ToDoubleFunction<T> getter) {
         if (getter == null)
             throw new NullPointerException("getter must not be null");
-        return with((u, t) -> getter.applyAsDouble(u) == getter.applyAsDouble(t));
-    }
-    
-    public <R> EqualityBuilder<T> withObject(Function<T, R> getter) {
-        if (getter == null)
-            throw new NullPointerException("getter must not be null");
-        return with((u, t) -> {
-            R value1 = getter.apply(u), value2 = getter.apply(t);
-            return value1 == null ? value2 == null : value1.equals(value2);
-        });
+        return withPredicate((u, t) -> getter.applyAsDouble(u) == getter.applyAsDouble(t));
     }
     
     public EqualityBuilder<T> withArrayOfInteger(Function<T, int[]> getter) {
         if (getter == null)
             throw new NullPointerException("getter must not be null");
         if (options.contains(Option.TREAT_NULL_AS_EMPTY)) {
-            return with((u, t) -> {
+            return withPredicate((u, t) -> {
                 int[] value1 = getter.apply(u), value2 = getter.apply(t);
                 return isNullOrEmpty(value1) ? isNullOrEmpty(value2) : Arrays.equals(value1, value2);
             });
         } else {
-            return with((u, t) -> {
+            return withPredicate((u, t) -> {
                 int[] value1 = getter.apply(u), value2 = getter.apply(t);
                 return Arrays.equals(value1, value2);
+            });
+        }
+    }
+    
+    public <Q, R> EqualityBuilder<T> withListOfObject(Function<T, List<Q>> getter) {q
+        return withListOfObject(getter, Function.identity());
+    }
+    
+    public <Q, R> EqualityBuilder<T> withListOfObject(Function<T, List<Q>> getter, Function<Q, R> translator) {
+        if (getter == null)
+            throw new NullPointerException("getter must not be null");
+        if (translator == null)
+            throw new NullPointerException("translator must not be null");
+        if (options.contains(Option.TREAT_NULL_AS_EMPTY)) {
+            return withPredicate((u, t) -> {
+                List<Q> value1 = getter.apply(u), value2 = getter.apply(t);
+                return isNullOrEmpty(value1) ? isNullOrEmpty(value2) : listsAreEqual(value1, value2, translator);
+            });
+        } else {
+            return withPredicate((u, t) -> {
+                List<Q> value1 = getter.apply(u), value2 = getter.apply(t);
+                return value1 == null ? value2 == null : listsAreEqual(value1, value2, translator);
             });
         }
     }
@@ -121,7 +146,7 @@ public class EqualityBuilder<T> {
     }
     
     private EqualityBuilder<T> withBooleanField(Field field) {
-        return with((t, u) -> {
+        return withPredicate((t, u) -> {
             try {
                 return field.getBoolean(t) == field.getBoolean(u);
             } catch (IllegalAccessException ex) {
@@ -131,7 +156,7 @@ public class EqualityBuilder<T> {
     }
     
     private EqualityBuilder<T> withIntegerField(Field field) {
-        return with((t, u) -> {
+        return withPredicate((t, u) -> {
             try {
                 return field.getInt(t) == field.getInt(u);
             } catch (IllegalAccessException ex) {
@@ -141,7 +166,7 @@ public class EqualityBuilder<T> {
     }
     
     private EqualityBuilder<T> withLongField(Field field) {
-        return with((t, u) -> {
+        return withPredicate((t, u) -> {
             try {
                 return field.getLong(t) == field.getLong(u);
             } catch (IllegalAccessException ex) {
@@ -151,7 +176,7 @@ public class EqualityBuilder<T> {
     }
     
     private EqualityBuilder<T> withDoubleField(Field field) {
-        return with((t, u) -> {
+        return withPredicate((t, u) -> {
             try {
                 return field.getDouble(t) == field.getDouble(u);
             } catch (IllegalAccessException ex) {
@@ -254,6 +279,34 @@ public class EqualityBuilder<T> {
                 || type.isInstance(t) && type.isInstance(u)
                 && predicates.stream().allMatch(x -> x.test((T)t, (T)u));
         };
+    }
+    
+    private <Q, R> boolean listsAreEqual(List<Q> value1, List<Q> value2, Function<Q, R> translator) {
+        int size = value1.size();
+        if (value2.size() != size)
+            return false;
+        
+        if (value1 instanceof RandomAccess && value2 instanceof RandomAccess) {
+            for (int index = 0; index < size; ++index) {
+                R element1 = translator.apply(value1.get(index));
+                R element2 = translator.apply(value2.get(index));
+                if (element1 == null ? element2 != null : !element1.equals(element2)) {
+                    return false;
+                }
+            }
+        } else {
+            Iterator<Q> iter1 = value1.iterator();
+            Iterator<Q> iter2 = value2.iterator();
+            while (iter1.hasNext()) {
+                R element1 = translator.apply(iter1.next());
+                R element2 = translator.apply(iter2.next());
+                if (element1 == null ? element2 != null : !element1.equals(element2)) {
+                    return false;
+                }
+            }
+        }
+            
+        return true;
     }
     
     static final private java.security.Permission ACCESS_PERMISSION = new ReflectPermission("suppressAccessChecks");

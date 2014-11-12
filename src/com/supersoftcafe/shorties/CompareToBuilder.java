@@ -21,102 +21,49 @@ import java.util.function.ToLongFunction;
  *
  * @author mbrown
  */
-public class CompareToBuilder<OWNER> {
-    private final Class<OWNER> clazz;
+public class CompareToBuilder<OWNER> extends Builder<OWNER, CompareToBuilder<OWNER>> {
     private final List<Comparator<OWNER>> compareToFunctions;
 
     
     private CompareToBuilder(Class<OWNER> clazz) {
-        this.clazz = clazz;
+        super(clazz);
         this.compareToFunctions = new ArrayList<>();
-    }
-    
-    
-    public CompareToBuilder<OWNER> creates(Class<OWNER> clazz) {
-        return new CompareToBuilder(clazz);
     }
 
     
-    public <T extends Comparable<T>> CompareToBuilder<OWNER> withObject(Function<OWNER, T> getter) {
+    @Override
+    public <T extends Comparable<T>> CompareToBuilder<OWNER> with(Function<OWNER, T> getter) {
         return add((p, q) -> compareObject(getter.apply(p), getter.apply(q)));
     }
     
-    public <T extends String> CompareToBuilder<OWNER> withString(Function<OWNER, T> getter) {
-        return add((p, q) -> compareObject(getter.apply(p), getter.apply(q)));
+    @Override
+    public <T extends Comparable<T>> CompareToBuilder<OWNER> withList(Function<OWNER, List<T>> getter) {
+        return add((p, q) -> compareList(getter.apply(p), getter.apply(q), comparator));
     }
-    
-    public CompareToBuilder<OWNER> withInteger(ToIntFunction<OWNER> getter) {
-        return add((p, q) -> Integer.compare(getter.applyAsInt(p), getter.applyAsInt(q)));
+
+    @Override
+    public <T extends Comparable<T>> CompareToBuilder<OWNER> withArray(Function<OWNER, T[]> getter) {
+        return add((p, q) -> compareArray(getter.apply(p), getter.apply(q), COMPARABLE_ARRAY_COMPARATOR));
     }
-    
-    public CompareToBuilder<OWNER> withInteger(ToLongFunction<OWNER> getter) {
+
+    @Override
+    public CompareToBuilder<OWNER> withLong(ToLongFunction<OWNER> getter) {
         return add((p, q) -> Long.compare(getter.applyAsLong(p), getter.applyAsLong(q)));
     }
     
+    @Override
     public CompareToBuilder<OWNER> withDouble(ToDoubleFunction<OWNER> getter) {
         return add((p, q) -> Double.compare(getter.applyAsDouble(p), getter.applyAsDouble(q)));
     }
-    
-    public CompareToBuilder<OWNER> withBoolean(Predicate<OWNER> getter) {
-        return add((p, q) -> Boolean.compare(getter.test(p), getter.test(q)));
-    }
 
-    
-    public <T extends Comparable<T>> CompareToBuilder<OWNER> withListOfObject(Function<OWNER, List<T>> getter) {
-        return withListOfObject(getter, COMPARABLE_COMPARATOR);
-    }
-    
-    public <T> CompareToBuilder<OWNER> withListOfObject(Function<OWNER, List<T>> getter, Comparator<? super T> comparator) {
-        return add((p, q) -> compareList(getter.apply(p), getter.apply(q), comparator));
-    }
-    
-    public <T extends String> CompareToBuilder<OWNER> withListOfString(Function<OWNER, List<T>> getter) {
-        return withListOfObject(getter, COMPARABLE_COMPARATOR);
-    }
-    
-    public <T extends Number> CompareToBuilder<OWNER> withListOfInteger(Function<OWNER, List<T>> getter) {
-        return withListOfObject(getter, INTEGER_COMPARATOR);
-    }
-    
-    public <T extends Number> CompareToBuilder<OWNER> withListOfLong(Function<OWNER, List<T>> getter) {
-        return withListOfObject(getter, LONG_COMPARATOR);
-    }
-    
-    public <T extends Number> CompareToBuilder<OWNER> withListOfDouble(Function<OWNER, List<T>> getter) {
-        return withListOfObject(getter, DOUBLE_COMPARATOR);
-    }
-    
-    public <T extends Boolean> CompareToBuilder<OWNER> withListOfBoolean(Function<OWNER, List<T>> getter) {
-        return withListOfObject(getter, BOOLEAN_COMPARATOR);
-    }
-    
-    
-    public <T extends Comparable<T>> CompareToBuilder<OWNER> withArrayOfObect(Function<OWNER, T[]> getter) {
-        return add((p, q) -> compareArray(getter.apply(p), getter.apply(q), COMPARABLE_ARRAY_COMPARATOR));
-    }
-    
-    public <T extends Comparable<T>> CompareToBuilder<OWNER> withArrayOfObect(Function<OWNER, T[]> getter, Comparator<? super T> comparator) {
-        return add((p, q) -> compareArray(getter.apply(p), getter.apply(q), (r, s, i) -> comparator.compare(r[i], s[i])));
-    }
-    
-    public <T extends String> CompareToBuilder<OWNER> withArrayOfString(Function<OWNER, T[]> getter) {
-        return add((p, q) -> compareArray(getter.apply(p), getter.apply(q), COMPARABLE_ARRAY_COMPARATOR));
-    }
-    
-    public CompareToBuilder<OWNER> withArrayOfInteger(Function<OWNER, Object> getter) {
-        return add((p, q) -> compareArray(getter.apply(p), getter.apply(q), INTEGER_ARRAY_COMPARATOR));
-    }
-    
-    public CompareToBuilder<OWNER> withArrayOfLong(Function<OWNER, Object> getter) {
+    @Override
+    protected <T> CompareToBuilder<OWNER> withPrimitiveArray(Function<OWNER, T> getter, AsLongArray<T> accessor) {
         return add((p, q) -> compareArray(getter.apply(p), getter.apply(q), LONG_ARRAY_COMPARATOR));
     }
-    
-    public CompareToBuilder<OWNER> withArrayOfDouble(Function<OWNER, Object> getter) {
+
+    @Override
+    protected <T> CompareToBuilder<OWNER> withPrimitiveArray(Function<OWNER, T> getter, AsDoubleArray<T> accessor) {
         return add((p, q) -> compareArray(getter.apply(p), getter.apply(q), DOUBLE_ARRAY_COMPARATOR));
-    }
-    
-    public CompareToBuilder<OWNER> withArrayOfBoolean(Function<OWNER, boolean[]> getter) {
-        return add((p, q) -> compareArray(getter.apply(p), getter.apply(q), BOOLEAN_ARRAY_COMPARATOR));
     }
     
     

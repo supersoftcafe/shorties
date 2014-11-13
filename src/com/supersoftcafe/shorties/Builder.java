@@ -31,8 +31,8 @@ public abstract class Builder<OWNER, TYPE extends Builder<OWNER, TYPE>> {
     
     public abstract TYPE withDouble(ToDoubleFunction<OWNER> getter);
     
-    protected abstract <T> TYPE withPrimitiveArray(Function<OWNER, T> getter, AsLongArray<T> accessor);
-    protected abstract <T> TYPE withPrimitiveArray(Function<OWNER, T> getter, AsDoubleArray<T> accessor);
+    protected abstract <T> TYPE withArrayAccessor(Function<OWNER, T> getter, AsLongArray<T> accessor);
+    protected abstract <T> TYPE withArrayAccessor(Function<OWNER, T> getter, AsDoubleArray<T> accessor);
     
     
     
@@ -47,47 +47,56 @@ public abstract class Builder<OWNER, TYPE extends Builder<OWNER, TYPE>> {
     
     
     public TYPE withArrayOfChar(Function<OWNER, char[]> getter) {
-        return withPrimitiveArray(getter, CHAR_ACCESS);
+        return withArrayAccessor(getter, CHAR_ACCESS);
     }
     
     public TYPE withArrayOfByte(Function<OWNER, byte[]> getter) {
-        return withPrimitiveArray(getter, BYTE_ACCESS);
+        return withArrayAccessor(getter, BYTE_ACCESS);
     }
     
     public TYPE withArrayOfShort(Function<OWNER, short[]> getter) {
-        return withPrimitiveArray(getter, SHORT_ACCESS);
+        return withArrayAccessor(getter, SHORT_ACCESS);
     }
     
     public TYPE withArrayOfInteger(Function<OWNER, int[]> getter) {
-        return withPrimitiveArray(getter, INT_ACCESS);
+        return withArrayAccessor(getter, INT_ACCESS);
     }
     
     public TYPE withArrayOfLong(Function<OWNER, long[]> getter) {
-        return withPrimitiveArray(getter, LONG_ACCESS);
+        return withArrayAccessor(getter, LONG_ACCESS);
     }
     
     public TYPE withArrayOfFloat(Function<OWNER, float[]> getter) {
-        return withPrimitiveArray(getter, FLOAT_ACCESS);
+        return withArrayAccessor(getter, FLOAT_ACCESS);
     }
     
     public TYPE withArrayOfDouble(Function<OWNER, double[]> getter) {
-        return withPrimitiveArray(getter, DOUBLE_ACCESS);
+        return withArrayAccessor(getter, DOUBLE_ACCESS);
     }
     
     public TYPE withArrayOfBoolean(Function<OWNER, boolean[]> getter) {
-        return withPrimitiveArray(getter, BOOLEAN_ACCESS);
+        return withArrayAccessor(getter, BOOLEAN_ACCESS);
     }
     
     
     
-    protected static interface AsLongArray<T> {
+    protected interface AsArray<T> {
+        int sizeOfArray(T array);
+    }
+    
+    protected interface AsObjectArray<T, O extends Comparable<O>> extends AsArray<T> {
+        int sizeOfArray(T array);
+        O entryAsObject(T array, int index);
+    }
+    
+    protected interface AsLongArray<T> extends AsArray<T> {
         default int sizeOfArray(T array) {
             return Array.getLength(array);
         }
         long entryAsLong(T array, int index);
     }
     
-    protected static interface AsDoubleArray<T> {
+    protected interface AsDoubleArray<T> extends AsArray<T> {
         default int sizeOfArray(T array) {
             return Array.getLength(array);
         }

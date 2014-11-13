@@ -57,21 +57,25 @@ public class CompareToBuilder<OWNER> extends Builder<OWNER, CompareToBuilder<OWN
     }
 
     @Override
-    protected <T> CompareToBuilder<OWNER> withPrimitiveArray(Function<OWNER, T> getter, AsLongArray<T> accessor) {
+    protected <T> CompareToBuilder<OWNER> withArrayAccessor(Function<OWNER, T> getter, AsLongArray<T> accessor) {
         return add((p, q) -> compareArray(getter.apply(p), getter.apply(q), LONG_ARRAY_COMPARATOR));
     }
 
     @Override
-    protected <T> CompareToBuilder<OWNER> withPrimitiveArray(Function<OWNER, T> getter, AsDoubleArray<T> accessor) {
+    protected <T> CompareToBuilder<OWNER> withArrayAccessor(Function<OWNER, T> getter, AsDoubleArray<T> accessor) {
         return add((p, q) -> compareArray(getter.apply(p), getter.apply(q), DOUBLE_ARRAY_COMPARATOR));
     }
     
+    private <T, O extends Comparable<O>> CompareToBuilder<OWNER> withArrayAccessor(Function<OWNER, T> getter, AsObjectArray<T, O> accessor) {
+        return add((p, q) -> );
+    }
     
     
     private CompareToBuilder<OWNER> add(Comparator<OWNER> comparator) {
         compareToFunctions.add(comparator);
         return this;
     }
+    
     
     private static <T extends Comparable<T>> int compareObject(T value1, T value2) {
         if (value1 == null) {
@@ -157,18 +161,4 @@ public class CompareToBuilder<OWNER> extends Builder<OWNER, CompareToBuilder<OWN
                 };
         }
     }
-    
-    private static final Comparator<Comparable> COMPARABLE_COMPARATOR = (p, q) -> compareObject(p, q);
-    private static final Comparator<Number>        INTEGER_COMPARATOR = (p, q) -> p == null ? (q == null ? 0 : 1) : Integer.compare(p.intValue(), q.intValue());
-    private static final Comparator<Number>           LONG_COMPARATOR = (p, q) -> p == null ? (q == null ? 0 : 1) : Long.compare(p.longValue(), q.longValue());
-    private static final Comparator<Number>         DOUBLE_COMPARATOR = (p, q) -> p == null ? (q == null ? 0 : 1) : Double.compare(p.doubleValue(), q.doubleValue());
-    private static final Comparator<Boolean>       BOOLEAN_COMPARATOR = (p, q) -> p == null ? (q == null ? 0 : 1) : Boolean.compare(p.booleanValue(), q.booleanValue());
-    
-    private interface ArrayComparator<T> {int compare(T a1, T a2, int i); }
-    
-    private static final ArrayComparator<Comparable[]> COMPARABLE_ARRAY_COMPARATOR = (p, q, i) -> compareObject(p[i], q[i]);
-    private static final ArrayComparator<Object>          INTEGER_ARRAY_COMPARATOR = (p, q, i) -> Integer.compare(Array.getInt(p, i), Array.getInt(q, i));
-    private static final ArrayComparator<Object>             LONG_ARRAY_COMPARATOR = (p, q, i) -> Long.compare(Array.getLong(p, i), Array.getLong(q, i));
-    private static final ArrayComparator<Object>           DOUBLE_ARRAY_COMPARATOR = (p, q, i) -> Double.compare(Array.getDouble(p, i), Array.getDouble(q, i));
-    private static final ArrayComparator<boolean[]>       BOOLEAN_ARRAY_COMPARATOR = (p, q, i) -> Boolean.compare(p[i], q[i]);
 }
